@@ -10,16 +10,18 @@ from keras.preprocessing.sequence import pad_sequences
 # ChatGPT did the encoding:
 # All data sets need to have the same length, which is a problem becuase our datasets chose random number of chords for each progression
 # So we use padding to make sure all the lists have the same range
-max_sequence_length = 8  # max of 8 chords in a progression
+max_sequence_length = 7  # max of 8 chords in a progression
 train_padded = pad_sequences(converted_training, maxlen=max_sequence_length, padding='post', truncating='post')
-train_answer_padded = pad_sequences(converted_training_label, maxlen=max_sequence_length, padding='post', truncating='post')
+train_answer_padded = pad_sequences(converted_training_label, maxlen=1, padding='post', truncating='post') 
 test_padded = pad_sequences(converted_testing, maxlen=max_sequence_length, padding='post', truncating='post')
-test_answer_padded = pad_sequences(converted_testing_label, maxlen=max_sequence_length, padding='post', truncating='post')
+test_answer_padded = pad_sequences(converted_testing_label, maxlen=1, padding='post', truncating='post')
 # switch to np arrays because that's what keras uses
 train = np.array(train_padded)
+# print("converted training label: ", train)
 train_answer = np.array(train_answer_padded)
 test = np.array(test_padded)
 test_answer = np.array(test_answer_padded)
+# print(train, train_answer)
 # [THIS IS A BUG: SIZE SHOULD ALWAYS BE THE SAME. IT'S A PROBLEM WITH THE CREATE_DATASETS.PY BUT I WANTED TO CHECK IF THIS DIRECTION IS GOOD BEFORE FIXING BUGS]
 # same size between x and y
 min_samples = min(len(train), len(train))
@@ -31,7 +33,7 @@ test_answer = test_answer[:min_samples]
 model = Sequential()
 model.add(Dense(64, input_dim=train.shape[1], activation='relu'))
 model.add(Dense(32, activation='relu'))
-model.add(Dense(8, activation='softmax'))
+model.add(Dense(1, activation='softmax'))
 
 # Compile the model
 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
@@ -42,3 +44,11 @@ model.fit(train, train_answer, epochs=10, batch_size=32)
 # Evaluate the model
 loss, accuracy = model.evaluate(test, test_answer)
 print(f'Test Loss: {loss}, Test Accuracy: {accuracy}')
+
+# predict next chord
+predictions = model.predict(test)
+
+# Find index of class with highest probability for each sample
+predicted_indices = np.argmax(predictions, axis=1)
+
+print(predicted_indices)

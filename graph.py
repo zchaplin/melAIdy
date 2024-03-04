@@ -1,4 +1,5 @@
 from queue import PriorityQueue
+from huristics import get_huristics_for_note
 import pygame
 import pygame.midi
 import time
@@ -73,7 +74,9 @@ class Graph:
             current_node.visited = True
 
             for adj_node, weight in current_node.adj.items():
-                distance = current_distance + weight
+                print(" node: ", adj_node.note) #" hueiristics: ", get_huristics_for_note(adj_node), )
+                distance = current_distance + weight + get_huristics_for_note(adj_node.note, start_note, current_node.predecessor)
+                
                 if distance < adj_node.distance:
                     adj_node.distance = distance
                     adj_node.predecessor = current_node
@@ -87,6 +90,7 @@ class Graph:
             current_node = current_node.predecessor
         self.path = path
         return path
+    
     def get_midi_notes(self):
         song = []
         for i in self.path:

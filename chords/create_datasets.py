@@ -1,4 +1,4 @@
-import random
+import random, re
 
 # -----------------------
 # Creating datasets from text files
@@ -8,8 +8,13 @@ import random
 # training.txt is organized like that: timestamp1   timestamp2  chord
     # so we need to extract only the chords
 training_path = "./sound_files/training.txt"
+# training_path = "./sound_files/one_chord_training.txt"
 testing_path = "./sound_files/testing.txt"
+# testing_path = "./sound_files/one_chord_testing.txt"
 
+
+# copied #39
+max_length = 3
 def create_dataset(path):
     with open(path, 'r') as file:
         lines = file.readlines()
@@ -25,25 +30,52 @@ def create_dataset(path):
     chord_progression = []
     current_progression = []
     answer_chord = []
-    length_of_progression = random.randint(3, 8)
+    length_of_progression = max_length # random.randint(3, 8)
     for chord in chords:
+        # removing weird chords
+        if "sus" in chord:
+            chord = chord.replace("sus", "min")
+        if "/b" in chord:
+            chord = chord.replace("/b", "")
+        if "/" in chord:
+            chord = chord.replace("/", "")
+        chord = re.sub(r'\d', '', chord)
         current_progression.append(chord)
         # N appears at the beginning/end of each song, so to make sure the progression will only include chords from one song, we cut it off whenever we reach the N
-        if chord == "N" or len(current_progression) == length_of_progression:
-            # ignore non chords
-            if chord == "N": 
-                current_progression.pop()
+        
+        # ignore non chords
+        if chord == "N" or not chord or len(chord) == 0: 
+            current_progression.pop()
+        
             # removing the last chord and saving it into the answers array
-            if len(current_progression) > 0:
-                answer_chord.append(current_progression.pop())
+        if len(current_progression) > 0 and len(current_progression) == length_of_progression:
+            answer_chord.append(current_progression.pop())
 
             chord_progression.append(current_progression)
             current_progression = []
-            length_of_progression = random.randint(3, 8)
+            length_of_progression = max_length #random.randint(3, 8)
 
     # remove empty chords
     chord_progression = [x for x in chord_progression if x]
+    answer_chord = [x for x in answer_chord if x]
+    print ("comparing lengths: ", len(answer_chord), len(chord_progression))
+    print(f"chord progression: {chord_progression}\n\nanswer chord: {answer_chord}\n\n")
+    for i in range(0,len(chord_progression)-1):
+        chord = chord_progression[i]
+        if not chord or chord == "N":
+            chord_progression.pop(i)
+            answer_chord.pop(i)
+    for i in range(0,len(answer_chord)-1):
+        chord = answer_chord[i]
+        if not chord or chord == "N":
+            chord_progression.pop(i)
+            answer_chord.pop(i)
+    # chord_progression = [x for x in chord_progression if x]
+    # answer_chord = [x for x in answer_chord if x]
+
     return chord_progression, answer_chord
+
+# SIZING PROBLEM: IF ANSWER IS N, AND THEN WE REMOVE ALL N, WE NEED TO THROW AWAY THE CORRESPONDING
 
 
 # -----------------------
@@ -58,6 +90,13 @@ def find_unique_chords(dataset):
             unique_chords.add(chord)
     
     return unique_chords
+
+def find_unique_chords_2(dataset, unique_chords):
+    for chord in dataset:
+        unique_chords.add(chord)
+    
+    return unique_chords
+
 
 # Give a number for each unique chord
 def map_chord_to_num(dataset):
@@ -95,12 +134,13 @@ def convert_chord_to_num(dataset, map, isProgression):
 training_dataset, training_label = create_dataset(training_path)
 testing_dataset, testing_label = create_dataset(testing_path)
 
-print("\ntraining dataset:\n ", training_dataset, "\ntraining label:\n ", training_label)
-print("\ntesting dataset:\n ", testing_dataset, "\ntesting label:\n ", testing_label)
-print("are training len equal? ", len(training_dataset), " = ", len(training_label))
-print("are testing len equal? ", len(testing_dataset), " = ", len(testing_label))
+# print("\ntraining dataset:\n ", training_dataset, "\ntraining label:\n ", training_label)
+# print("\ntesting dataset:\n ", testing_dataset, "\ntesting label:\n ", testing_label)
+# print("are training len equal? ", len(training_dataset), " = ", len(training_label))
+# print("are testing len equal? ", len(testing_dataset), " = ", len(testing_label))
 
 unqiue = find_unique_chords(training_dataset+testing_dataset)
+unqiue = find_unique_chords_2(training_label+testing_label, unqiue)
 map = map_chord_to_num(unqiue)
 print("\nmap: ", map, "\n")
 
@@ -110,7 +150,7 @@ converted_training_label = convert_chord_to_num(training_label, map, False)
 converted_testing = convert_chord_to_num(testing_dataset, map, True)
 converted_testing_label = convert_chord_to_num(testing_label, map, False)
 
-print("\ntraining dataset:\n ", converted_training, "\ntraining label:\n ", converted_training_label)
-print("\ntesting dataset:\n ", converted_testing, "\ntesting label:\n ", converted_testing_label)
-print("are training len equal? ", len(converted_training), " = ", len(converted_training_label))
-print("are testing len equal? ", len(converted_testing), " = ", len(converted_testing_label))
+# print("\ntraining dataset:\n ", converted_training, "\ntraining label:\n ", converted_training_label)
+# print("\ntesting dataset:\n ", converted_testing, "\ntesting label:\n ", converted_testing_label)
+# print("are training len equal? ", len(converted_training), " = ", len(converted_training_label))
+# print("are testing len equal? ", len(converted_testing), " = ", len(converted_testing_label))

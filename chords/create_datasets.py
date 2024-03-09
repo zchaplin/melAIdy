@@ -32,13 +32,30 @@ def create_dataset(path):
     answer_chord = []
     length_of_progression = max_length # random.randint(3, 8)
     for chord in chords:
-        # removing weird chords
+        # simplifying the dataset (before had 180 unique chords, which made it difficult to see any learning)
+        if len(chord) > 1:
+            chord = chord[:1]
         if "sus" in chord:
             chord = chord.replace("sus", "min")
         if "/b" in chord:
             chord = chord.replace("/b", "")
         if "/" in chord:
             chord = chord.replace("/", "")
+        if ":maj" in chord:
+            chord = chord.replace(":maj", "")
+        if ":min" in chord:
+            chord = chord.replace(":min", "")
+        if ":aug" in chord:
+            chord = chord.replace(":aug", "")
+        if ":hdim" in chord:
+            chord = chord.replace(":hdim", "")
+        if "(b)" in chord:
+            chord = chord.replace("(b)", "")
+        if ":dim" in chord:
+            chord = chord.replace(":dim", "")
+        if "#" in chord:
+            chord = chord.replace("#", "")
+       
         chord = re.sub(r'\d', '', chord)
         current_progression.append(chord)
         # N appears at the beginning/end of each song, so to make sure the progression will only include chords from one song, we cut it off whenever we reach the N

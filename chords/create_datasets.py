@@ -13,8 +13,8 @@ testing_path = "./sound_files/testing.txt"
 # testing_path = "./sound_files/one_chord_testing.txt"
 
 
-# copied #39
-max_length = 3
+# copied #65
+max_length = 4
 def create_dataset(path):
     with open(path, 'r') as file:
         lines = file.readlines()

@@ -35,6 +35,7 @@ model = Sequential()
 
 model.add(Embedding(input_dim=num_classes, output_dim=200, input_length=max_sequence_length))
 model.add(LSTM(units=64))
+model.add(Dense(32, activation='relu'))
 model.add(Dropout(0.20))
 model.add(Dense(64, activation='relu'))
 model.add(Dense(num_classes, activation='softmax'))
@@ -47,7 +48,7 @@ model.compile(
             metrics=['accuracy'],
         )
 # Train the model
-model.fit(train, train_answer_one_hot, epochs=30, batch_size=32, validation_data=(train, train_answer_one_hot))
+model.fit(train, train_answer_one_hot, epochs=45, batch_size=32, validation_data=(train, train_answer_one_hot))
 
 # Evaluate the model
 loss, accuracy = model.evaluate(test, test_answer_one_hot)
@@ -56,7 +57,7 @@ print(f'Test Loss: {loss}, Test Accuracy: {accuracy}')
 # predict next chord
 
 # pick the first chord from the test set, keep predicting the next chord until we have n chords
-n = 10
+n = 20
 gen_chords = list(test[0])
 for i in range(n):
     test_num = []
@@ -74,24 +75,6 @@ for i in range(n):
     gen_chords.append(predicted_indices[0])
 
 print("Generated chords: ", gen_chords)
-
-
-
-
-# predictions = model.predict(test)
-# # print("PREDICTION: ", predictions)
-# # Find index of class with highest probability for each sample
-# predicted_indices = np.argmax(predictions, axis=1)
-
-# print("Predictions: ", predicted_indices)
-
-
-# ------ PLAY CHORDS OF TEST IN ORDER -----
-# predicted_chord_progression = []
-# for i in range(0,len(test)-1):
-#     predicted_chord_progression.extend(test[i])
-#     predicted_chord_progression.append(predicted_indices[i])
-# print("AI answer: ", predicted_chord_progression)
 
 # Get the actual chords from the map:
 converted_chords = []
@@ -160,8 +143,14 @@ def play_chords(notes, duration):
         midi_output.note_on(chord[0], 127)
         midi_output.note_on(chord[1], 127)
         midi_output.note_on(chord[2], 127)
-        # Wait for the duration of the note
-        time.sleep(duration)
+
+        midi_output.note_on(chord[0], 127)
+        time.sleep(duration/3)
+        midi_output.note_on(chord[1], 127)
+        time.sleep(duration/3)
+        midi_output.note_on(chord[2], 127)
+        time.sleep(duration/3)
+
         # Stop playing the note (128 = note off)
         midi_output.note_off(chord[0], 127)
         midi_output.note_off(chord[1], 127)

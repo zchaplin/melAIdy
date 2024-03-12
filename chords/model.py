@@ -33,41 +33,16 @@ print("input shape: ", input_shape)
 # Define the model
 model = Sequential()
 
-# model.add(Reshape((1, max_sequence_length, 1), input_shape=input_shape))  # reshape it so we could use the Conv2D
-
-# model.add(Conv2D(filters=64, kernel_size=(1,1), activation='relu', padding='valid'))
-# model.add(MaxPooling2D(pool_size=(1,1)))
-
-# model.add(Conv2D(128,(1,1), activation='relu'))
-# model.add(MaxPooling2D(pool_size=(1,1), padding="valid"))
-# model.add(DepthwiseConv2D(kernel_size=(1, 1), activation='relu', padding='valid'))
-
-# model.add(Conv2D(filters=128,kernel_size=(1,1)))
-# model.add(MaxPooling2D(pool_size=(1,1)))
-# model.add(Conv2D(128,kernel_size=(1, 1), activation='relu'))
-# model.add(DepthwiseConv2D(kernel_size=(1, 1), activation='relu', padding='valid'))
-
-# model.add(SpatialDropout2D(0.1))
-
 model.add(Embedding(input_dim=num_classes, output_dim=200, input_length=max_sequence_length))
-# model.add(LSTM(units=64, return_sequences=True))  
 model.add(LSTM(units=64))
-
-# model.add(Flatten())
-# model.add(Dense(128, activation='relu'))
-model.add(Dropout(0.15))
-# model.add(BatchNormalization())
-
-# model.add(Dense(128, activation='relu'))
-# model.add(Dropout(0.15))
+model.add(Dropout(0.20))
 model.add(Dense(64, activation='relu'))
-
 model.add(Dense(num_classes, activation='softmax'))
 
 # Compile the model
 model.compile(
             # optimizer=RMSprop(learning_rate=1e-05),
-            optimizer=Adam(learning_rate=0.00001),
+            optimizer=Adam(learning_rate=0.00005),
             loss='categorical_crossentropy',
             metrics=['accuracy'],
         )
@@ -79,24 +54,48 @@ loss, accuracy = model.evaluate(test, test_answer_one_hot)
 print(f'Test Loss: {loss}, Test Accuracy: {accuracy}')
 
 # predict next chord
-predictions = model.predict(test)
-# print("PREDICTION: ", predictions)
-# Find index of class with highest probability for each sample
-predicted_indices = np.argmax(predictions, axis=1)
 
-print("Predictions: ", predicted_indices)
+# pick the first chord from the test set, keep predicting the next chord until we have n chords
+n = 10
+gen_chords = list(test[0])
+for i in range(n):
+    test_num = []
+    for chord in gen_chords[-3:]:
+        test_num.append(chord)
+        # test_num.append(map[chord])
+    test_num = np.array(test_num).reshape(1, -1)
+    print("test_num: ", test_num)
+    predictions = model.predict(test_num)
+    predicted_indices = np.argmax(predictions, axis=1)
+    if predicted_indices[0] in gen_chords[-2:]:
+        # give a random chord if the predicted chord is already in the progression
+        predicted_indices[0] = np.random.choice([i for i in range(0, num_classes) if i not in gen_chords[-3:]])
+    print("Predictions: ", predicted_indices)
+    gen_chords.append(predicted_indices[0])
+
+print("Generated chords: ", gen_chords)
+
+
+
+
+# predictions = model.predict(test)
+# # print("PREDICTION: ", predictions)
+# # Find index of class with highest probability for each sample
+# predicted_indices = np.argmax(predictions, axis=1)
+
+# print("Predictions: ", predicted_indices)
 
 
 # ------ PLAY CHORDS OF TEST IN ORDER -----
-predicted_chord_progression = []
-for i in range(0,len(test)-1):
-    predicted_chord_progression.extend(test[i])
-    predicted_chord_progression.append(predicted_indices[i])
+# predicted_chord_progression = []
+# for i in range(0,len(test)-1):
+#     predicted_chord_progression.extend(test[i])
+#     predicted_chord_progression.append(predicted_indices[i])
 # print("AI answer: ", predicted_chord_progression)
 
 # Get the actual chords from the map:
 converted_chords = []
-for chord in predicted_chord_progression:
+for chord in gen_chords:
     for c, n in map.items():
         if n == chord:
             converted_chords.append(c)
@@ -105,6 +104,7 @@ for chord in predicted_chord_progression:
 
 
 # ---- Play sounds ---
+# major chords
 chord_to_midi = {
     "A": [57, 61, 64],
     "B": [59, 63, 66],
@@ -113,9 +113,61 @@ chord_to_midi = {
     "E": [64, 68, 71],
     "F": [65, 69, 72],
     "G": [67, 71, 74],
+
+    # minor chords
+    "A:min": [57, 60, 64],
+    "B:min": [59, 62, 66],
+    "C:min": [60, 63, 67],
+    "D:min": [62, 65, 69],
+    "E:min": [64, 67, 71],
+    "F:min": [65, 68, 72],
+    "G:min": [67, 70, 74],
+
+    # flat chords
+    "Ab": [56, 60, 63],
+    "Bb": [58, 62, 65],
+    "Db": [61, 65, 68],
+    "Eb": [63, 67, 70],
+    "Gb": [66, 70, 73],
+
+    # flat minor chords
+    "Ab:min": [56, 59, 63],
+    "Bb:min": [58, 61, 65],
+    "Db:min": [61, 64, 68],
+    "Eb:min": [63, 66, 70],
 }
 
 notes = []
 for chord in converted_chords:
     notes.append(chord_to_midi[chord])
 print("FINAL NOTES TO PLAY:" , notes)
+
+# init pygame
+import pygame.midi
+import time
+pygame.midi.init()
+
+
+def play_chords(notes, duration):
+    # Open the default MIDI output port
+    port = pygame.midi.get_default_output_id()
+    midi_output = pygame.midi.Output(port, 0)
+    instrument = 0
+    midi_output.set_instrument(instrument)
+    
+    for chord in notes:
+        # Start playing the note (144 = note on, note = MIDI note number, 127 = velocity)
+        midi_output.note_on(chord[0], 127)
+        midi_output.note_on(chord[1], 127)
+        midi_output.note_on(chord[2], 127)
+        # Wait for the duration of the note
+        time.sleep(duration)
+        # Stop playing the note (128 = note off)
+        midi_output.note_off(chord[0], 127)
+        midi_output.note_off(chord[1], 127)
+        midi_output.note_off(chord[2], 127)
+    
+    # Close the MIDI output
+    midi_output.close()
+
+play_chords(notes, 1)

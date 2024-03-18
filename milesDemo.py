@@ -169,11 +169,13 @@ class Graph:
 
 
         for synapse in self.noteSynapses:
-            if synapse.source == chord.notes[0]:
-                if abs(synapse.target.note - chord.notes[0].note) <= 2: # decrease weights of the root note of the chord (melody should not be too close to the root note of the chord)
-                    synapse.weight -= 0.3 
-                else:
-                    synapse.weight += 0.3
+            if synapse.target.note in chord.notes:
+                synapse.weight += .3
+            # if synapse.source == chord.notes[0]:
+            #     if abs(synapse.target.note - chord.notes[0].note) <= 2: # decrease weights of the root note of the chord (melody should not be too close to the root note of the chord)
+            #         synapse.weight -= 0.3
+            #     else:
+            #         synapse.weight += 0.3
 
             for synapse in self.chordSynapses:
                 if synapse.source == chord:
@@ -249,6 +251,8 @@ while True:
         if count % 4 == 0:
             g.WalkChords()
         chord = g.lastChord
+        # print("Chord: :",chord)
+        # print()
         # if has instance chord, play it
         
         for note in chord.notes:

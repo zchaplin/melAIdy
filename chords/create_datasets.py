@@ -13,7 +13,6 @@ testing_path = "./sound_files/testing.txt"
 # testing_path = "./sound_files/one_chord_testing.txt"
 
 
-# copied #120
 max_length = 4
 def create_dataset(path):
     with open(path, 'r') as file:
@@ -181,6 +180,23 @@ converted_training = convert_chord_to_num(training_dataset, map, True)
 converted_training_label = convert_chord_to_num(training_label, map, False)
 converted_testing = convert_chord_to_num(testing_dataset, map, True)
 converted_testing_label = convert_chord_to_num(testing_label, map, False)
+# ensures the input shape would be the same on all datasets
+def check_input_size(dataset):
+    for i in map.values():
+        if i not in dataset:
+            dataset.append([i,i,i])
+    return dataset
+def check_input_size_label(dataset):
+    for i in map.values():
+        if i not in dataset:
+            dataset.append([i])
+    return dataset
+converted_training = check_input_size(converted_training)
+converted_training_label = check_input_size_label(converted_training_label)
+converted_testing = check_input_size(converted_testing)
+converted_testing_label = check_input_size_label(converted_testing_label)
+
+
 
 # print("\ntraining dataset:\n ", converted_training, "\ntraining label:\n ", converted_training_label)
 # print("\ntesting dataset:\n ", converted_testing, "\ntesting label:\n ", converted_testing_label)
